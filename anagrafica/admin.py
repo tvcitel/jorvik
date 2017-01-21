@@ -1,6 +1,11 @@
+from django.conf.urls import url
 from django.contrib import admin
+from django.contrib.admin import helpers
 from django.contrib.contenttypes.admin import GenericTabularInline
+from django.shortcuts import render
+from django.utils.translation import ungettext_lazy
 from mptt.admin import MPTTModelAdmin
+
 from anagrafica.models import Persona, Sede, Appartenenza, Delega, Documento, Fototessera, Estensione, Trasferimento, \
     Riserva, Dimissione, Telefono, ProvvedimentoDisciplinare
 from autenticazione.models import Utenza
@@ -67,6 +72,98 @@ class AdminPersona(ReadonlyAdminMixin, admin.ModelAdmin):
     list_filter = ('stato', )
     list_display_links = ('nome', 'cognome', 'codice_fiscale',)
     inlines = [InlineUtenzaPersona, InlineAppartenenzaPersona, InlineDelegaPersona, InlineDocumentoPersona, InlineTelefonoPersona]
+    actions = ['sposta_persone',]
+
+    messaggio_spostamento = ungettext_lazy(
+        '%(num)s persona trasferita con successo', '%(num)s persone trasferite con successo', 'num'
+    )
+
+    def get_urls(self):
+        urls = super(AdminPersona, self).get_urls()
+        custom_urls = [
+            url(r'^trasferisci/$',
+                self.admin_site.admin_view(self.sposta_persone_csv),
+                name='anagrafica_persona_trasferisci'),
+        ]
+        return custom_urls + urls
+
+    def sposta_persone(self, request, queryset):
+        from anagrafica.forms import ModuloSpostaPersoneManuale
+        trasferimenti = []
+        errori = []
+        # Escludiamo i non volontari
+        volontari = Appartenenza.objects.filter(Appartenenza.query_attuale(membro=Appartenenza.VOLONTARIO).q, persona__in=queryset).values_list('persona', flat=True)
+        queryset = queryset.filter(pk__in=volontari)
+        contesto = {
+            'title': 'Seleziona gli estremi dei trasferimenti',
+            'etichetta_invio': 'Avvia trasferimento',
+            'eseguito': False,
+        }
+        if 'do_action' in request.POST:
+            form = ModuloSpostaPersoneManuale(request.POST)
+            if form.is_valid():
+                trasferimenti = form.sposta_persone(request.user.persona, queryset)
+                errori = [persona[0] for persona in trasferimenti if not persona[1]]
+                trasferimenti = [persona[0] for persona in trasferimenti if persona[1]]
+                self.message_user(request, self.messaggio_spostamento % {'num': len(trasferimenti)} )
+            contesto = {
+                'title': 'Esito dei trasferimenti',
+                'eseguito': True
+            }
+        else:
+            form = ModuloSpostaPersoneManuale()
+        contesto .update({
+            'opts': Persona._meta,
+            'form': form,
+            'dati_pronti': True,
+            'queryset': queryset,
+            'trasferimenti': trasferimenti,
+            'errori': errori,
+            'eseguito': 'do_action' in request.POST,
+            'action': 'sposta_persone',
+            'action_checkbox_name': helpers.ACTION_CHECKBOX_NAME,
+        })
+        return render(request, 'admin/anagrafica/trasferimento_massivo.html', contesto)
+
+    def sposta_persone_csv(self, request):
+        from anagrafica.forms import ModuloSpostaPersoneDaCSV
+        trasferimenti = []
+        errori = []
+        contesto = {
+            'title': 'Carica dati dei trasferimenti',
+            'etichetta_invio': 'Carica dati',
+            'eseguito': False
+        }
+        if request.method == 'POST':
+            form = ModuloSpostaPersoneDaCSV(request.POST, files=request.FILES)
+            if form.is_valid():
+                if form.cleaned_data['procedi'] and request.session.get('dati_persone', None):
+                    trasferimenti = form.sposta_persone(request.user.persona, persone=request.session['dati_persone'])
+                    errori = [persona[0] for persona in trasferimenti if not persona[1]]
+                    trasferimenti = [persona[0] for persona in trasferimenti if persona[1]]
+                    self.message_user(request, self.messaggio_spostamento % {'num': len(trasferimenti)} )
+                    contesto = {
+                        'title': 'Esito dei trasferimenti',
+                        'eseguito': True
+                    }
+                else:
+                    dati = form.elenco_persone(request.FILES['dati'])
+                    form.data['procedi'] = 1
+                    request.session['dati_persone'] = dati
+                    contesto = {
+                        'title': 'Conferma trasferimenti',
+                        'etichetta_invio': 'Avvia trasferimento',
+                        'dati_csv': dati,
+                    }
+        else:
+            form = ModuloSpostaPersoneDaCSV()
+        contesto .update({
+            'opts': Persona._meta,
+            'form': form,
+            'trasferimenti': trasferimenti,
+            'errori': errori,
+        })
+        return render(request, 'admin/anagrafica/trasferimento_massivo.html', contesto)
 
 
 @admin.register(Sede)

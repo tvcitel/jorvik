@@ -158,12 +158,14 @@ class Autorizzazione(ModelloSemplice, ConMarcaTemporale):
         else:
             return None
 
-    def firma(self, firmatario, concedi=True, modulo=None, motivo=None, auto=False):
+    def firma(self, firmatario, concedi=True, modulo=None, motivo=None, auto=False, notifiche_attive=True):
         """
         Firma l'autorizzazione.
         :param firmatario: Il firmatario.
         :param concedi: L'esito, vero per concedere, falso per negare.
         :param modulo: Se modulo necessario, un modulo valido.
+        :param auto: Se la firma avviene con procedura automatica / massiva
+        :param notifiche_attive: Se inviare notifiche
         :return:
         """
         # Controlla che il modulo fornito, se presente, sia valido
@@ -190,7 +192,7 @@ class Autorizzazione(ModelloSemplice, ConMarcaTemporale):
                     self.motivo_negazione = modulo.cleaned_data['motivo']
                     self.save()
             self.oggetto.autorizzazioni_set().update(necessaria=False)
-            if self.oggetto.INVIA_NOTIFICA_NEGATA:
+            if self.oggetto.INVIA_NOTIFICA_NEGATA and notifiche_attive:
                 self.notifica_negata(auto=auto)
             return
 
@@ -202,15 +204,15 @@ class Autorizzazione(ModelloSemplice, ConMarcaTemporale):
         if self.oggetto.autorizzazioni_set().filter(necessaria=True).count() == 0:
             self.oggetto.confermata = True
             self.oggetto.save()
-            self.oggetto.autorizzazione_concessa(modulo=modulo, auto=auto)
-            if self.oggetto.INVIA_NOTIFICA_CONCESSA:
+            self.oggetto.autorizzazione_concessa(modulo=modulo, auto=auto, notifiche_attive=notifiche_attive)
+            if self.oggetto.INVIA_NOTIFICA_CONCESSA and notifiche_attive:
                 self.notifica_concessa(auto=auto)
 
-    def concedi(self, firmatario=None, modulo=None, auto=False):
-        self.firma(firmatario, True, modulo=modulo, auto=auto)
+    def concedi(self, firmatario=None, modulo=None, auto=False, notifiche_attive=True):
+        self.firma(firmatario, True, modulo=modulo, auto=auto, notifiche_attive=notifiche_attive)
 
-    def nega(self, firmatario=None, modulo=None, auto=False):
-        self.firma(firmatario, False, modulo=modulo, auto=auto)
+    def nega(self, firmatario=None, modulo=None, auto=False, notifiche_attive=True):
+        self.firma(firmatario, False, modulo=modulo, auto=auto, notifiche_attive=notifiche_attive)
 
     @property
     def template_path(self):
@@ -678,6 +680,7 @@ class ConAutorizzazioni(models.Model):
         :return:
         """
 
+        notifiche_attive = kwargs.pop('notifiche_attive', True)
         try:  # Cerca l'autorizzazione per questo oggetto con progressivo maggiore
             ultima = self.autorizzazioni_set().latest('progressivo')
             # Se esiste, calcola il prossimo progressivo per l'oggetto
@@ -718,7 +721,7 @@ class ConAutorizzazioni(models.Model):
             if auto and auto != Autorizzazione.MANUALE:
                 r.automatizza(concedi=auto, scadenza=scadenza)
 
-            if invia_notifiche:
+            if invia_notifiche and notifiche_attive:
 
                 if not iterabile(invia_notifiche):
                     invia_notifiche = [invia_notifiche]
@@ -753,13 +756,13 @@ class ConAutorizzazioni(models.Model):
         # Non diventa piu' necessaria alcuna autorizzazione tra quelle richieste
         self.autorizzazioni.update(necessaria=False)
 
-    def autorizzazione_concessa(self, modulo=None, auto=False):
+    def autorizzazione_concessa(self, modulo=None, auto=False, notifiche_attive=True):
         """
         Sovrascrivimi! Ascoltatore per concessione autorizzazione.
         """
         pass
 
-    def autorizzazione_negata(self, modulo=None, auto=False):
+    def autorizzazione_negata(self, modulo=None, auto=False, notifiche_attive=True):
         """
         Sovrascrivimi! Ascoltatore per negazione autorizzazione.
         """

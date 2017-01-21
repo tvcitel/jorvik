@@ -539,7 +539,7 @@ class Partecipazione(ModelloSemplice, ConMarcaTemporale, ConAutorizzazioni):
             self.turno.attivita.pk, self.pk,
         )
 
-    def richiedi(self):
+    def richiedi(self, notifiche_attive=True):
         """
         Richiede autorizzazione di partecipazione all'attività.
         :return:
@@ -556,6 +556,7 @@ class Partecipazione(ModelloSemplice, ConMarcaTemporale, ConAutorizzazioni):
             invia_notifiche=self.turno.attivita.referenti_attuali(),
             auto=Autorizzazione.NG_AUTO,
             scadenza=self.APPROVAZIONE_AUTOMATICA,
+            notifiche_attive=notifiche_attive
         )
 
         # Se fuori sede, chiede autorizzazione al Presidente del mio Comitato.
@@ -570,9 +571,10 @@ class Partecipazione(ModelloSemplice, ConMarcaTemporale, ConAutorizzazioni):
                 invia_notifiche=self.persona.sede_riferimento().presidente(),
                 auto=Autorizzazione.NG_AUTO,
                 scadenza=self.APPROVAZIONE_AUTOMATICA,
+                notifiche_attive=notifiche_attive
             )
 
-    def autorizzazione_concessa(self, modulo, auto=False):
+    def autorizzazione_concessa(self, modulo, auto=False, notifiche_attive=True):
         """
         (Automatico)
         Invia notifica di autorizzazione concessa.
@@ -580,7 +582,7 @@ class Partecipazione(ModelloSemplice, ConMarcaTemporale, ConAutorizzazioni):
         # TODO
         pass
 
-    def autorizzazione_negata(self, modulo=None, auto=False):
+    def autorizzazione_negata(self, modulo=None, auto=False, notifiche_attive=True):
         """
         (Automatico)
         Invia notifica di autorizzazione negata.
