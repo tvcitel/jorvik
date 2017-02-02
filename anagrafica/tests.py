@@ -14,6 +14,7 @@ from anagrafica.forms import ModuloCreazioneEstensione, ModuloNegaEstensione, Mo
 from anagrafica.models import Appartenenza, Documento, Delega, Dimissione, Estensione, Trasferimento, Riserva, Sede
 from anagrafica.permessi.applicazioni import UFFICIO_SOCI, PRESIDENTE, UFFICIO_SOCI_UNITA, DELEGATO_OBIETTIVO_5
 from anagrafica.permessi.costanti import MODIFICA, ELENCHI_SOCI, LETTURA, GESTIONE_SOCI
+from anagrafica.permessi.espansioni import espandi_elenchi_soci
 from anagrafica.utils import termina_deleghe_giovani
 from autenticazione.models import Utenza
 from autenticazione.utils_test import TestFunzionale
@@ -387,6 +388,21 @@ class TestAnagrafica(TestCase):
         )
 
         d6.delete()
+
+    def test_permessi_profilo(self):
+        presidente = crea_persona()
+        persona, sede, appartenenza = crea_persona_sede_appartenenza(presidente)
+        sede2 = crea_sede()
+
+        appartenenza.fine = poco_fa()
+        appartenenza.terminazione = Appartenenza.TRASFERIMENTO
+        appartenenza.save()
+
+        Appartenenza.objects.create(sede=sede2, persona=persona, inizio=poco_fa())
+
+        risultati = espandi_elenchi_soci(Sede.objects.filter(pk=sede.pk))
+        for permesso, qs in risultati:
+            self.assertFalse(persona in qs)
 
     def test_documenti(self):
 
