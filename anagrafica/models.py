@@ -1937,9 +1937,9 @@ class Trasferimento(ModelloSemplice, ConMarcaTemporale, ConAutorizzazioni, ConPD
             self.protocollo_data = modulo.cleaned_data['protocollo_data']
             self.protocollo_numero = modulo.cleaned_data['protocollo_numero']
         self.save()
-        self.esegui()
+        self.esegui(auto)
 
-    def esegui(self):
+    def esegui(self, auto=False):
         appartenenzaVecchia = Appartenenza.objects.filter(Appartenenza.query_attuale().q,
                                                           membro=Appartenenza.VOLONTARIO, persona=self.persona).first()
         appartenenzaVecchia.fine = poco_fa()
@@ -1954,10 +1954,14 @@ class Trasferimento(ModelloSemplice, ConMarcaTemporale, ConAutorizzazioni, ConPD
         )
         app.save()
         self.appartenenza = app
+        testo_extra = ''
+        if auto:
+            testo_extra = 'Il trasferimento è stato automaticamente approvato essendo decorsi trenta giorni, ' \
+                          'ai sensi dell\'articolo 9.5 del "Regolamento sull\'organizzazione, le attività, ' \
+                          'la formazione e l\'ordinamento dei volontari"'
+        else:
+            self.automatica  = False
         self.save()
-        testo_extra = 'Il trasferimento è stato automaticamente approvato essendo decorsi trenta giorni, ' \
-                      'ai sensi dell\'articolo 9.5 del "Regolamento sull\'organizzazione, le attività, ' \
-                      'la formazione e l\'ordinamento dei volontari"'
         self.autorizzazioni.first().notifica_origine_autorizzazione_concessa(appartenenzaVecchia.sede, testo_extra)
 
     def richiedi(self):
