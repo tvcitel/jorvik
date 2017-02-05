@@ -165,12 +165,30 @@ class ElencoSostenitori(ElencoVistaAnagrafica):
     args: QuerySet<Sede>, Sedi per le quali compilare gli elenchi sostenitori
     """
 
+    def template(self):
+        return 'us_elenchi_inc_sostenitori.html'
+
     def risultati(self):
         qs_sedi = self.args[0]
         return Persona.objects.filter(
             Appartenenza.query_attuale(
                 sede__in=qs_sedi, membro=Appartenenza.SOSTENITORE,
             ).via("appartenenze")
+        ).prefetch_related(
+            'appartenenze', 'appartenenze__sede',
+            'utenza', 'numeri_telefono'
+        )
+
+
+class ElencoExSostenitori(ElencoSostenitori):
+
+    def risultati(self):
+        qs_sedi = self.args[0]
+        return Persona.objects.filter(
+            appartenenze__in=Appartenenza.objects.filter(
+                sede__in=qs_sedi, membro=Appartenenza.SOSTENITORE,
+                fine__isnull=False
+            )
         ).prefetch_related(
             'appartenenze', 'appartenenze__sede',
             'utenza', 'numeri_telefono'
