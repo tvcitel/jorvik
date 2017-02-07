@@ -22,6 +22,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 # Elenca le applicazioni installate da abilitare
 
 INSTALLED_APPS = [
+    'jorvik',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -368,3 +369,4 @@ CAN_LOGIN_AS = lambda request, target_user: request.user.is_superuser or request
 FORMAZIONE_FINESTRA_CORSI_INIZIATI = 7
 # Durata delli inviti ai corsi base
 FORMAZIONE_VALIDITA_INVITI = 7
+DATE_FORMAT = '%d/%m/%Y'

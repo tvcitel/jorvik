@@ -90,11 +90,11 @@ def crea_locazione(dati=None, geo=False):
     return locazione
 
 
-def crea_appartenenza(persona, sede):
+def crea_appartenenza(persona, sede, tipo=Appartenenza.VOLONTARIO):
     app = Appartenenza(
         persona=persona,
         sede=sede,
-        membro=Appartenenza.VOLONTARIO,
+        membro=tipo,
         inizio="1980-12-10",
     )
     app.save()

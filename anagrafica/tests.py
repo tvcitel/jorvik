@@ -1,7 +1,12 @@
 import datetime
+from io import BytesIO
+from random import randint, choice
 from unittest import skipIf
 
 import re
+
+import unicodecsv
+from io import StringIO
 from django.core import mail
 from django.test import Client
 from django.test import TestCase
@@ -11,7 +16,7 @@ from lxml import html
 
 from anagrafica.costanti import LOCALE, PROVINCIALE, REGIONALE, NAZIONALE, TERRITORIALE
 from anagrafica.forms import ModuloCreazioneEstensione, ModuloNegaEstensione, ModuloProfiloModificaAnagrafica, \
-    ModuloConsentiTrasferimento
+    ModuloConsentiTrasferimento, ModuloSpostaPersoneManuale, ModuloSpostaPersoneDaCSV
 from anagrafica.models import Appartenenza, Documento, Delega, Dimissione, Estensione, Trasferimento, Riserva, Sede
 from anagrafica.permessi.applicazioni import UFFICIO_SOCI, PRESIDENTE, UFFICIO_SOCI_UNITA, DELEGATO_OBIETTIVO_1, \
     DELEGATO_OBIETTIVO_2, DELEGATO_OBIETTIVO_3, DELEGATO_OBIETTIVO_4, DELEGATO_OBIETTIVO_5, DELEGATO_OBIETTIVO_6, \
@@ -882,6 +887,177 @@ class TestAnagrafica(TestCase):
         self.assertEqual(autorizzazione.concessa, None)
         self.assertNotIn(est, Estensione.con_esito_ok())
         self.assertEqual(da_estendere.appartenenze_attuali(membro=Appartenenza.ESTESO, sede=sede2).count(), 0)
+
+    def test_spostamento_massivo_persona(self):
+        presidente1 = crea_persona()
+        presidente1.email_contatto = email_fittizzia()
+        presidente1.save()
+        admin = crea_persona()
+        admin.email_contatto = email_fittizzia()
+        admin.save()
+        sede = crea_sede(presidente1)
+        sede2 = crea_sede(presidente1)
+        data_trasferimento = poco_fa() - datetime.timedelta(days=360)
+
+        persona = crea_persona()
+        persona.email_contatto = email_fittizzia()
+        persona.save()
+        crea_appartenenza(persona, sede)
+
+        sostenitore = crea_persona()
+        sostenitore.email_contatto = email_fittizzia()
+        sostenitore.save()
+        crea_appartenenza(sostenitore, sede, tipo=Appartenenza.SOSTENITORE)
+
+        solo_chiuse = crea_persona()
+        solo_chiuse.email_contatto = email_fittizzia()
+        solo_chiuse.save()
+        app = crea_appartenenza(solo_chiuse, sede)
+        app.terminazione = Appartenenza.DIMISSIONE
+        app.fine = data_trasferimento
+        app.save()
+
+        chiuse_dopo = crea_persona()
+        chiuse_dopo.email_contatto = email_fittizzia()
+        chiuse_dopo.save()
+        app = crea_appartenenza(solo_chiuse, sede)
+        app.terminazione = Appartenenza.DIMISSIONE
+        app.fine = data_trasferimento + datetime.timedelta(days=10)
+        app.save()
+
+        stessa_sede = crea_persona()
+        stessa_sede.email_contatto = email_fittizzia()
+        stessa_sede.save()
+        crea_appartenenza(stessa_sede, sede2)
+
+        self.assertEqual(list(stessa_sede.sedi_attuali()), [sede2])
+        self.assertEqual(list(persona.sedi_attuali()), [sede])
+        self.assertEqual(list(sostenitore.sedi_attuali()), [sede])
+        self.assertEqual(list(solo_chiuse.sedi_attuali()), [])
+        self.assertEqual(list(chiuse_dopo.sedi_attuali()), [])
+
+        mail.outbox = []
+
+        self.assertFalse(chiuse_dopo.trasferimento_massivo(sede2, admin, 'prova', data_trasferimento))
+        self.assertTrue(persona.trasferimento_massivo(sede2, admin, 'prova', data_trasferimento))
+        self.assertFalse(sostenitore.trasferimento_massivo(sede2, admin, 'prova', data_trasferimento))
+        self.assertFalse(solo_chiuse.trasferimento_massivo(sede2, admin, 'prova', data_trasferimento))
+        self.assertFalse(stessa_sede.trasferimento_massivo(sede2, admin, 'prova', data_trasferimento))
+
+        self.assertFalse(mail.outbox)
+
+    def _dati_test_trasferimenti(self):
+        presidente1 = crea_persona()
+        presidente1.email_contatto = email_fittizzia()
+        presidente1.save()
+        sede = crea_sede(presidente1)
+        sede2 = crea_sede(presidente1)
+
+        persone = []
+        sostentori = []
+        for x in range(0, 10):
+            persona = crea_persona()
+            persona.email_contatto = email_fittizzia()
+            persona.save()
+            persone.append(persona)
+            crea_appartenenza(persona, sede)
+
+        for x in range(0, 10):
+            persona = crea_persona()
+            persona.email_contatto = email_fittizzia()
+            persona.save()
+            sostentori.append(persona)
+            crea_appartenenza(persona, sede, tipo=Appartenenza.SOSTENITORE)
+        return sede, sede2, persone, sostentori
+
+    def test_spostamento_massivo_csv(self):
+        admin = crea_persona()
+        admin.email_contatto = email_fittizzia()
+        admin.save()
+
+        sede, sede2, persone, sostentori = self._dati_test_trasferimenti()
+        sede3 = crea_sede(admin)
+        dati = {}
+
+        mail.outbox = []
+
+        input_file = BytesIO()
+        csv_data = unicodecsv.writer(input_file)
+        for persona in persone:
+            data = (
+                persona.codice_fiscale,
+                (poco_fa() + datetime.timedelta(days=randint(-90, -30))).strftime('%Y-%m-%d'),
+                choice((str(sede2.pk), str(sede3.pk), str(sede2.pk + 1000))),
+                'esempio'
+            )
+            csv_data.writerow(data)
+        input_file.seek(0)
+
+        form = ModuloSpostaPersoneDaCSV(data={})
+
+        elenco = form.elenco_persone(input_file)
+        in_sede2 = []
+        in_sede3 = []
+        in_sede_nessuna = []
+        for item in elenco:
+            if item['sede'] == sede2:
+                in_sede2.append(item['persona'])
+            elif item['sede'] == sede3:
+                in_sede3.append(item['persona'])
+            elif item['sede'] is None:
+                in_sede_nessuna.append(item['persona'])
+
+        input_file.seek(0)
+        trasferimenti = form.sposta_persone(admin, input_file)
+
+        self.assertEqual(sede.membri_attuali(membro=Appartenenza.VOLONTARIO).count(), len(in_sede_nessuna))
+        self.assertEqual(sede.membri_attuali(membro=Appartenenza.SOSTENITORE).count(), 10)
+        self.assertEqual(sede2.membri_attuali(membro=Appartenenza.VOLONTARIO).count(), len(in_sede2))
+        self.assertEqual(sede2.membri_attuali(membro=Appartenenza.SOSTENITORE).count(), 0)
+        self.assertEqual(sede3.membri_attuali(membro=Appartenenza.VOLONTARIO).count(), len(in_sede3))
+        self.assertEqual(sede3.membri_attuali(membro=Appartenenza.SOSTENITORE).count(), 0)
+
+        for trasferimento in trasferimenti:
+            if trasferimento[0] in persone:
+                if trasferimento[0] not in in_sede_nessuna:
+                    self.assertTrue(trasferimento[1])
+                else:
+                    self.assertFalse(trasferimento[1])
+            elif trasferimento[0] in persone:
+                self.assertFalse(trasferimento[1])
+
+        self.assertFalse(mail.outbox)
+
+    def test_spostamento_massivo_form(self):
+        admin = crea_persona()
+        admin.email_contatto = email_fittizzia()
+        admin.save()
+
+        sede, sede2, persone, sostentori = self._dati_test_trasferimenti()
+        dati = {
+            'sede': sede2.pk,
+            'motivazione': 'prova',
+            'inizio_appartenenza': datetime.date(2016, 1, 1)
+        }
+
+        mail.outbox = []
+
+        form = ModuloSpostaPersoneManuale(dati)
+        self.assertTrue(form.is_valid())
+        trasferimenti = form.sposta_persone(admin, sede.membri_attuali())
+
+        self.assertEqual(sede.membri_attuali(membro=Appartenenza.VOLONTARIO).count(), 0)
+        self.assertEqual(sede.membri_attuali(membro=Appartenenza.SOSTENITORE).count(), 10)
+        self.assertEqual(sede2.membri_attuali(membro=Appartenenza.VOLONTARIO).count(), 10)
+        self.assertEqual(sede2.membri_attuali(membro=Appartenenza.SOSTENITORE).count(), 0)
+
+        for trasferimento in trasferimenti:
+            if trasferimento[0] in persone:
+                self.assertTrue(trasferimento[1])
+            elif trasferimento[0] in sostentori:
+                self.assertFalse(trasferimento[1])
+
+        self.assertFalse(mail.outbox)
 
     def test_trasferimento_automatico(self):
         presidente1 = crea_persona()

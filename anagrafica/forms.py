@@ -1,7 +1,11 @@
 import datetime
-
+import unicodecsv
 import stdnum
+
 from django import forms
+from django.conf import settings
+from django.contrib.admin.templatetags.admin_static import static
+from django.contrib.admin.widgets import AdminDateWidget
 from django.contrib.auth.forms import PasswordChangeForm
 from django.core.exceptions import ValidationError
 from django.forms import ModelForm
@@ -16,6 +20,88 @@ from autocomplete_light import shortcuts as autocomplete_light
 from base.forms import ModuloMotivoNegazione
 from curriculum.models import TitoloPersonale
 from sangue.models import Donatore, Donazione
+
+class ModuloSpostaPersone(object):
+
+    def elenco_persone(self, source):
+        return source
+
+    def sposta_persone(self, firmatario, source=None, persone=None):
+        trasferimenti = []
+        if source and not persone:
+            persone = self.elenco_persone(source)
+        for persona in persone:
+            if persona['sede']:
+                trasferita = persona['persona'].trasferimento_massivo(
+                    persona['sede'],
+                    firmatario,
+                    persona['motivazione'],
+                    persona['inizio_appartenenza']
+                )
+                trasferimenti.append((persona['persona'], trasferita))
+            else:
+                trasferimenti.append((persona['persona'], False))
+
+        return trasferimenti
+
+
+class ModuloSpostaPersoneManuale(ModuloSpostaPersone, forms.Form):
+    sede = autocomplete_light.ModelChoiceField(
+        "SedeAutocompletamento"
+    )
+    inizio_appartenenza = forms.DateField(label='Data di inizio appartenenza', widget=AdminDateWidget(format='%Y-%m%d'))
+    motivazione = forms.CharField()
+
+    @property
+    def media(self):
+        extra = '' if settings.DEBUG else '.min'
+        js = [
+            'core.js',
+            'vendor/jquery/jquery%s.js' % extra,
+            'jquery.init.js',
+            'admin/RelatedObjectLookups.js',
+        ]
+        return forms.Media(js=[static('admin/js/%s' % url) for url in js]) + super(ModuloSpostaPersone, self).media
+
+    def elenco_persone(self, source):
+        trasferimenti = []
+        for persona in source.order_by('cognome', 'nome'):
+            trasferimenti.append({
+                'persona': persona,
+                'sede': self.cleaned_data['sede'],
+                'motivazione': self.cleaned_data['motivazione'],
+                'inizio_appartenenza': self.cleaned_data['inizio_appartenenza']
+            })
+        return trasferimenti
+
+
+class ModuloSpostaPersoneDaCSV(ModuloSpostaPersone, forms.Form):
+    dati = forms.FileField(required=False)
+    procedi = forms.BooleanField(widget=forms.HiddenInput(), required=False)
+
+    def elenco_persone(self, source):
+        dati = {}
+        sedi = set()
+        trasferimenti = []
+        if self.is_valid():
+            data = unicodecsv.reader(source)
+            for persona in data:
+                dati[persona[0]] = persona
+                try:
+                    sedi.add(int(persona[2]))
+                except ValueError :
+                    pass
+            sedi = {str(sede.pk): sede for sede in Sede.objects.filter(pk__in=sedi)}
+            for persona in Persona.objects.filter(codice_fiscale__in=dati.keys()).order_by('cognome', 'nome'):
+                dati_persona = dati[persona.codice_fiscale]
+                sede = sedi.get(dati_persona[2], None)
+                trasferimenti.append({
+                    'persona': persona,
+                    'sede': sede,
+                    'motivazione': dati_persona[3],
+                    'inizio_appartenenza': dati_persona[1],
+                })
+        return trasferimenti
 
 
 class ModuloStepComitato(autocomplete_light.ModelForm):
