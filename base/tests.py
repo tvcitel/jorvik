@@ -331,7 +331,6 @@ class TestFunzionaleBase(TestFunzionale):
         self.assertTrue(sessione_aspirante.is_text_not_present('Accesso Volontari'))
         sessione_aspirante.visit("%s/utente/documenti/" % self.live_server_url)
         self.assertTrue(sessione_aspirante.is_text_present('Accesso Volontari'))
-        sessione_aspirante.quit()
 
         sessione_dipendente = self.sessione_utente(persona=dipendente, wait_time=1)
         self.assertEqual(len(sessione_dipendente.find_link_by_partial_text('Estensione')), 0)
@@ -367,7 +366,6 @@ class TestFunzionaleBase(TestFunzionale):
         self.assertTrue(sessione_dipendente.is_text_not_present('Accesso Volontari'))
         sessione_dipendente.visit("%s/utente/documenti/" % self.live_server_url)
         self.assertTrue(sessione_dipendente.is_text_not_present('Accesso Volontari'))
-        sessione_dipendente.quit()
 
         sessione_ordinario = self.sessione_utente(persona=ordinario, wait_time=1)
         self.assertEqual(len(sessione_ordinario.find_link_by_partial_text('Estensione')), 0)
@@ -406,7 +404,6 @@ class TestFunzionaleBase(TestFunzionale):
         self.assertTrue(sessione_ordinario.is_text_not_present('Accesso Volontari'))
         sessione_ordinario.visit("%s/utente/documenti/" % self.live_server_url)
         self.assertTrue(sessione_ordinario.is_text_present('Accesso Volontari'))
-        sessione_ordinario.quit()
 
         sessione_sostenitore = self.sessione_utente(persona=sostenitore, wait_time=1)
         self.assertEqual(len(sessione_sostenitore.find_link_by_partial_text('Estensione')), 0)
@@ -445,7 +442,6 @@ class TestFunzionaleBase(TestFunzionale):
         self.assertTrue(sessione_sostenitore.is_text_not_present('Accesso Volontari'))
         sessione_sostenitore.visit("%s/utente/documenti/" % self.live_server_url)
         self.assertTrue(sessione_sostenitore.is_text_present('Accesso Volontari'))
-        sessione_sostenitore.quit()
 
     def test_localizzatore_solo_italia(self):
         presidente = crea_persona()
