@@ -91,18 +91,17 @@ def us_reclama(request, me):
                     sedi += [s]  # Aggiungi a elenco sedi
 
             if p.appartenenze_attuali().filter(membro=Appartenenza.SOSTENITORE).exists():
-                messaggio_extra = "<br>Questa persona è già registrata come sostenitore. Prima di poterla reclamare deve essere dimessa dal ruolo di sostenitore"
+                messaggio = "Questa persona è già registrata come sostenitore. " \
+                            r"Prima di poterla reclamare deve essere dimessa dal ruolo di sostenitore"
             else:
-                messaggio_extra = ""
+                messaggio = "Non puoi reclamare questa persona in nessuna delle tue Sedi. Potrebbe " \
+                            "essere già appartenente a qualche Comitato. "
 
             if sedi:
                 return redirect("/us/reclama/%d/" % (p.pk,))
 
             else:
-                modulo.add_error('codice_fiscale', mark_safe("Non puoi reclamare questa persona "
-                                                   "in nessuna delle tue Sedi. Potrebbe "
-                                                   "essere già appartenente a qualche "
-                                                   "Comitato. " + messaggio_extra))
+                modulo.add_error('codice_fiscale', mark_safe(messaggio))
 
         except Persona.DoesNotExist:
             modulo.add_error('codice_fiscale', "Nessuna Persona registrata in Gaia "

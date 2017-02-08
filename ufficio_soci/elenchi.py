@@ -180,16 +180,23 @@ class ElencoSostenitori(ElencoVistaAnagrafica):
         )
 
 
-class ElencoExSostenitori(ElencoSostenitori):
+class ElencoExSostenitori(ElencoVistaAnagrafica):
 
     def risultati(self):
         qs_sedi = self.args[0]
-        return Persona.objects.filter(
+
+        sostenitori = Persona.objects.filter(
+            Appartenenza.query_attuale(
+                sede__in=qs_sedi, membro=Appartenenza.SOSTENITORE,
+            ).via("appartenenze")
+        ).values_list('pk', flat=True)
+        ex = Persona.objects.filter(
             appartenenze__in=Appartenenza.objects.filter(
                 sede__in=qs_sedi, membro=Appartenenza.SOSTENITORE,
                 fine__isnull=False
             )
-        ).prefetch_related(
+        ).exclude(pk__in=sostenitori)
+        return ex.prefetch_related(
             'appartenenze', 'appartenenze__sede',
             'utenza', 'numeri_telefono'
         )

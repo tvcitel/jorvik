@@ -302,6 +302,16 @@ class TestBase(TestCase):
         self.assertTrue(socio1 not in sostenitori)
         self.assertTrue(socio2 not in sostenitori)
 
+        Appartenenza.objects.create(persona=sostenitore1, sede=sede, inizio=poco_fa(), membro=Appartenenza.SOSTENITORE)
+
+        elenco = ElencoExSostenitori([sede])
+        sostenitori = elenco.risultati()
+        self.assertTrue(sostenitore1 not in sostenitori)
+        self.assertTrue(sostenitore2 not in sostenitori)
+        self.assertTrue(socio1 not in sostenitori)
+        self.assertTrue(socio2 not in sostenitori)
+
+
 class TestFunzionaleUfficioSoci(TestFunzionale):
 
     @skip
