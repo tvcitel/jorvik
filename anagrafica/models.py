@@ -1982,7 +1982,7 @@ class Trasferimento(ModelloSemplice, ConMarcaTemporale, ConAutorizzazioni, ConPD
         appartenenzaVecchia.fine = poco_fa()
         appartenenzaVecchia.terminazione = Appartenenza.TRASFERIMENTO
         appartenenzaVecchia.save()
-         # Invia notifica tramite e-mail
+        # Invia notifica tramite e-mail
         app = Appartenenza(
             membro=Appartenenza.VOLONTARIO,
             persona=self.persona,
@@ -1993,6 +1993,7 @@ class Trasferimento(ModelloSemplice, ConMarcaTemporale, ConAutorizzazioni, ConPD
         self.appartenenza = app
         testo_extra = ''
         if auto:
+            self.automatica = True
             testo_extra = 'Il trasferimento è stato automaticamente approvato essendo decorsi trenta giorni, ' \
                           'ai sensi dell\'articolo 9.5 del "Regolamento sull\'organizzazione, le attività, ' \
                           'la formazione e l\'ordinamento dei volontari"'
