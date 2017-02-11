@@ -2,6 +2,7 @@ import os
 from datetime import datetime, date
 from zipfile import ZipFile
 
+import requests
 from barcode import generate
 from barcode.writer import ImageWriter
 from django.core.files import File
@@ -144,18 +145,17 @@ class PDF(Allegato):
             'orientation': orientamento,
             'html': html
         }
-
-        data = urllib.parse.urlencode(values)
-        data = data.encode('UTF-8')
-        req = urllib.request.Request(url, data)
-        response = urllib.request.urlopen(req)
+        response = requests.post(url, values)
+        print(response.content)
 
         generatore = GeneratoreNomeFile(posizione)
         zname = generatore(self, nome)
         self.prepara_cartelle(MEDIA_ROOT + zname)
-        pdffile = open(MEDIA_ROOT + zname, 'wb')
-        pdffile.write(response.read())
-        pdffile.close()
+        with open(MEDIA_ROOT + zname, 'wb') as pdffile:
+            try:
+                pdffile.write(response.content)
+            except TypeError:
+                pass
 
         self.file = zname
         self.nome = nome
