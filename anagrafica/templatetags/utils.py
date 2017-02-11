@@ -159,7 +159,7 @@ def mappa(parser, token):
 
 @register.simple_tag(takes_context=True)
 def euro(context, numero):
-    return mark_safe(testo_euro(numero, simbolo_html=True))
+    return mark_safe(testo_euro(numero, simbolo_html=False))
 
 
 @register.simple_tag(takes_context=True)
