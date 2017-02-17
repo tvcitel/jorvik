@@ -13,6 +13,7 @@ from django.views.i18n import javascript_catalog
 import anagrafica.viste
 import articoli.viste
 import attivita.viste
+import autenticazione.viste
 import base.viste, base.errori
 import centrale_operativa.viste
 import formazione.viste
@@ -57,7 +58,7 @@ urlpatterns = [
     # url(r'^login/$', base.errori.vista_ci_siamo_quasi),
     url(r'^', include(tf_urls, 'two_factor')),   # 2FA
     url(r'^scaduta/$', base.viste.sessione_scaduta),
-    #url(r'^logout/$', django.contrib.auth.views.logout, {'template_name': 'base_logout.html'}),
+    url(r'^logout/$', autenticazione.viste.logout, {'template_name': 'base_logout.html'}, name='logout'),
     url(r'^', include('django.contrib.auth.urls')),
 
     # Modulo di recupero password
