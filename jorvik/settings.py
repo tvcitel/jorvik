@@ -364,6 +364,9 @@ if os.environ.get('ENABLE_TEST_APPS', False):
     INSTALLED_APPS.append('segmenti.segmenti_test')
 
 CAN_LOGIN_AS = lambda request, target_user: request.user.is_superuser or request.user.groups.filter(name='loginas').exists()
+from django.core.urlresolvers import reverse_lazy
+LOGOUT_URL = reverse_lazy('loginas-logout')
+LOGINAS_LOGOUT_REDIRECT_URL = reverse_lazy('admin:autenticazione_utenza_changelist')
 
 # Entro questa finestra temporale i corsi sono visibili agli aspiranti e si possono iscrivere autonomamente
 FORMAZIONE_FINESTRA_CORSI_INIZIATI = 7
