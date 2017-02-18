@@ -1238,6 +1238,7 @@ class TestAnagrafica(TestCase):
         # Notifica Presidente in uscita
         email = mail.outbox[0]
         self.assertTrue(email.subject.find('Richiesta di trasferimento da %s' % da_trasferire.nome_completo) > -1)
+        self.assertTrue(email.body.find('Nota bene: Questa richiesta di trasferimento') > -1)
         self.assertTrue(presidente1.email_contatto in email.to)
 
         autorizzazione = Autorizzazione.objects.first()
