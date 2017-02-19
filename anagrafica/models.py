@@ -752,10 +752,13 @@ class Persona(ModelloSemplice, ConMarcaTemporale, ConAllegati, ConVecchioID):
         """
         return (self.deleghe_attuali().exists() or
                 self.autorizzazioni_in_attesa().exists() or
-                hasattr(self, 'aspirante'))
+                INCARICO_ASPIRANTE in dict(self.incarichi()))
 
     def incarichi(self):
-        incarichi_persona = {}
+        if hasattr(self, 'aspirante'):
+            incarichi_persona = {INCARICO_ASPIRANTE: [(self.__class__.objects.filter(pk=self.pk), self.creazione)]}
+        else:
+            incarichi_persona = {}
         for delega in self.deleghe_attuali():
             incarichi_delega = delega.espandi_incarichi()
             for incarico in incarichi_delega:
