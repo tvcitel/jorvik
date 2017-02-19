@@ -484,6 +484,26 @@ class TestAnagrafica(TestCase):
             msg="Il membro non ha davvero alcuna carta di identita"
         )
 
+    def test_blocco_estensione_regionale(self):
+        presidente1 = crea_persona()
+        presidente2 = crea_persona()
+        sede2 = crea_sede(presidente2)
+
+        modulo = ModuloCreazioneEstensione({'destinazione': sede2, 'motivo': 'blag'})
+        self.assertFalse(modulo.is_valid())
+        self.assertTrue('destinazione'in modulo.errors)
+        self.assertTrue('La scelta effettuata non compare tra quelle disponibili' in modulo.errors['destinazione'].as_text())
+
+    def test_blocco_trasferimento_regionale(self):
+        presidente1 = crea_persona()
+        presidente2 = crea_persona()
+        sede2 = crea_sede(presidente2)
+
+        modulo = ModuloCreazioneTrasferimento({'destinazione': sede2, 'motivo': 'blag'})
+        self.assertFalse(modulo.is_valid())
+        self.assertTrue('destinazione'in modulo.errors)
+        self.assertTrue('La scelta effettuata non compare tra quelle disponibili' in modulo.errors['destinazione'].as_text())
+
     def test_estensione_accettata(self):
         presidente1 = crea_persona()
         presidente2 = crea_persona()
