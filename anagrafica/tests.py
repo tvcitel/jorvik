@@ -487,6 +487,7 @@ class TestAnagrafica(TestCase):
     def test_blocco_estensione_regionale(self):
         presidente1 = crea_persona()
         presidente2 = crea_persona()
+        sede1 = crea_sede(presidente1, estensione=TERRITORIALE)
         sede2 = crea_sede(presidente2, estensione=LOCALE)
         sede3 = crea_sede(presidente2, estensione=REGIONALE)
 
