@@ -487,9 +487,16 @@ class TestAnagrafica(TestCase):
     def test_blocco_estensione_regionale(self):
         presidente1 = crea_persona()
         presidente2 = crea_persona()
-        sede2 = crea_sede(presidente2)
+        sede2 = crea_sede(presidente2, estensione=LOCALE)
+        sede3 = crea_sede(presidente2, estensione=REGIONALE)
 
-        modulo = ModuloCreazioneEstensione({'destinazione': sede2, 'motivo': 'blag'})
+        modulo = ModuloCreazioneEstensione({'destinazione': sede1.pk, 'motivo': 'blag'})
+        self.assertTrue(modulo.is_valid())
+
+        modulo = ModuloCreazioneEstensione({'destinazione': sede2.pk, 'motivo': 'blag'})
+        self.assertTrue(modulo.is_valid())
+
+        modulo = ModuloCreazioneEstensione({'destinazione': sede3.pk, 'motivo': 'blag'})
         self.assertFalse(modulo.is_valid())
         self.assertTrue('destinazione'in modulo.errors)
         self.assertTrue('La scelta effettuata non compare tra quelle disponibili' in modulo.errors['destinazione'].as_text())
@@ -497,9 +504,17 @@ class TestAnagrafica(TestCase):
     def test_blocco_trasferimento_regionale(self):
         presidente1 = crea_persona()
         presidente2 = crea_persona()
-        sede2 = crea_sede(presidente2)
+        sede1 = crea_sede(presidente1, estensione=TERRITORIALE)
+        sede2 = crea_sede(presidente2, estensione=LOCALE)
+        sede3 = crea_sede(presidente2, estensione=REGIONALE)
 
-        modulo = ModuloCreazioneTrasferimento({'destinazione': sede2, 'motivo': 'blag'})
+        modulo = ModuloCreazioneTrasferimento({'destinazione': sede1.pk, 'motivo': 'blag'})
+        self.assertTrue(modulo.is_valid())
+
+        modulo = ModuloCreazioneTrasferimento({'destinazione': sede2.pk, 'motivo': 'blag'})
+        self.assertTrue(modulo.is_valid())
+
+        modulo = ModuloCreazioneTrasferimento({'destinazione': sede3.pk, 'motivo': 'blag'})
         self.assertFalse(modulo.is_valid())
         self.assertTrue('destinazione'in modulo.errors)
         self.assertTrue('La scelta effettuata non compare tra quelle disponibili' in modulo.errors['destinazione'].as_text())

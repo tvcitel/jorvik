@@ -20,7 +20,7 @@ from base.utils import poco_fa
 from base.utils_tests import crea_persona_sede_appartenenza, crea_persona, crea_sede, crea_appartenenza, \
     crea_utenza, crea_locazione, email_fittizzia
 from ufficio_soci.elenchi import ElencoElettoratoAlGiorno, ElencoSociAlGiorno, ElencoSostenitori, ElencoExSostenitori, \
-    ElencoVolontari, ElencoSenzaTurni, ElencoTesseriniRichiesti, ElencoTesseriniDaRichiedere
+    ElencoVolontari, ElencoTesseriniRichiesti, ElencoTesseriniDaRichiedere, ElencoSenzaTurni
 from ufficio_soci.forms import ModuloElencoElettorato, ModuloReclamaQuota
 from ufficio_soci.models import Tesseramento, Tesserino, Quota, Riduzione
 
