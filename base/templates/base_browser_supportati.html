@@ -1,0 +1,27 @@
+{% extends "base_vuota.html" %}
+
+{% load bootstrap3 %}
+
+{% block pagina_titolo %}Browser supportati su Gaia{% endblock %}
+
+{% block pagina_principale %}
+
+    <div class="container">
+        <div class="col-md-12">
+            <h2><i class="fa fa-shield"></i> Elenco browser.</h2>
+            <hr />
+            <p>
+                <ul>
+                  <li>Internet Explorer 11</li>
+                  <li>Edge</li>
+                  <li>Chrome 50+</li>
+                  <li>Firefox 45+</li>
+                  <li>Safari 6+</li>
+                  <li>Android 4.0</li>
+                  <li>iOS 8.0</li>
+                </ul>
+            </p>
+        </div>
+    </div>
+
+{% endblock %}
