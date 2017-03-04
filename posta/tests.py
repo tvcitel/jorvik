@@ -170,15 +170,6 @@ class TestInviiMassivi(TestCase):
 
         imposta_destinatari_e_scrivi_messaggio(request, Persona.objects.all())
         self.assertEqual(len(request.session["messaggio_destinatari"]), Persona.objects.all().count())
-        request = self._setup_request(reverse('posta-scrivi'), self.presidente.utenza, old_request=request)
-        self.assertEqual(len(request.session["messaggio_destinatari"]), Persona.objects.all().count())
-        response = posta_scrivi(request)
-        # le persone generate dall'elenco non sono presenti nel messaggio perché la pagina è chiamata senza parametro
-        for persona in Persona.objects.all():
-            self.assertNotContains(response, 'name="destinatari" type="hidden" value="{}"'.format(persona.pk))
-
-        imposta_destinatari_e_scrivi_messaggio(request, Persona.objects.all())
-        self.assertEqual(len(request.session["messaggio_destinatari"]), Persona.objects.all().count())
         request = self._setup_request(redirect['Location'], self.presidente.utenza, old_request=request)
         with freeze_time(now() + timedelta(seconds=settings.POSTA_MASSIVA_TIMEOUT + 1)):
             response = posta_scrivi(request)

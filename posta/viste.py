@@ -95,9 +95,7 @@ def posta_scrivi(request, me):
     try:
         timestamp = request.session["messaggio_destinatari_timestamp"]
         if (
-            str(request.GET.get('da_elenco', 0)) == '1' and
-            timestamp and
-            timestamp > (now() - timedelta(seconds=settings.POSTA_MASSIVA_TIMEOUT))
+            timestamp and timestamp > (now() - timedelta(seconds=settings.POSTA_MASSIVA_TIMEOUT))
         ):
             # max POSTA_MASSIVA_TIMEOUT secondi fa
             destinatari = request.session["messaggio_destinatari"]
