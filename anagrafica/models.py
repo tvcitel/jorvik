@@ -2014,7 +2014,8 @@ class Trasferimento(ModelloSemplice, ConMarcaTemporale, ConAutorizzazioni, ConPD
             self.automatica  = False
         self.save()
         if notifiche_attive:
-            self.autorizzazioni.first().notifica_origine_autorizzazione_concessa(appartenenzaVecchia.sede, testo_extra)
+            self.autorizzazioni.first().notifica_sede_autorizzazione_concessa(appartenenzaVecchia.sede, testo_extra)
+            self.autorizzazioni.first().notifica_sede_autorizzazione_concessa(app.sede, testo_extra)
 
     def richiedi(self, notifiche_attive=True):
 
@@ -2099,6 +2100,10 @@ class Estensione(ModelloSemplice, ConMarcaTemporale, ConAutorizzazioni, ConPDF):
         app.save()
         self.appartenenza = app
         self.save()
+        testo_extra = ''
+        self.autorizzazioni.first().notifica_sede_autorizzazione_concessa(origine, testo_extra)
+        self.autorizzazioni.first().notifica_sede_autorizzazione_concessa(app.sede, testo_extra)
+
 
     def richiedi(self, notifiche_attive=True):
         if not self.persona.sede_riferimento():
@@ -2188,6 +2193,8 @@ class Riserva(ModelloSemplice, ConMarcaTemporale, ConStorico, ConProtocollo,
             self.protocollo_data = modulo.cleaned_data['protocollo_data']
             self.protocollo_numero = modulo.cleaned_data['protocollo_numero']
         self.save()
+        testo_extra = ''
+        self.autorizzazioni.first().notifica_sede_autorizzazione_concessa(self.persona.sede_riferimento(), testo_extra)
 
     def termina(self):
         self.fine = poco_fa()
